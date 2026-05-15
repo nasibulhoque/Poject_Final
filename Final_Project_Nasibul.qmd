@@ -1,0 +1,1525 @@
+---
+title: "Spatial Analysis of Accessibility to Hospitals and Housing for Agricultural Labor Migrants in Tuscany, Lazio, and Calabria of Italy"
+author: Nasibul Hoque
+---
+
+## Project Overview
+
+Agricultural labor migration plays a crucial role in Italy's rural economy, especially in the southern and central parts. Migrant farmworkers, primarily from Sub-Saharan Africa, South Asia, and Eastern Europe, are vital to seasonal harvests in regions such as Tuscany, Lazio, and Calabria. Despite their significant economic contributions, these workers often experience precarious living conditions and face barriers to essential services, such as healthcare and housing (Caxaj et al., 2023; Lamberti-Castronuovo et al., 2021).
+
+This project leverages OpenStreetMap data to analyze the spatial relationship between farmland and two key resources: hospitals and residential zones. The study examines the geographic isolation of agricultural workers by measuring the distance from each farmland polygon to the nearest hospital and residential area. Farmland located far from hospitals or residential zones may indicate areas where migrant workers face barriers to accessing healthcare and are more likely to reside in informal settlements (De Virgilio Suglia et al., 2025).
+
+The three regions — Tuscany, Lazio, and Calabria — were chosen because they illustrate a range of agricultural activity, economic progress, and migrant labor challenges in Italy. Armenise et al. (2024) found notable differences in accessibility across Italian regions, especially impacting foreign-born and older groups. Calovi and Seghieri (2018) also highlighted how geographic location influences fair access to outpatient services in Tuscany. These factors make these regions particularly suitable for comparative spatial analysis.
+
+## Theoretical Framework
+
+### Spatial Justice and Agricultural Labor Migrants
+
+Agricultural production in Italy mainly takes place in rural and remote areas characterized by seasonal labor needs and limited infrastructure (Lamberti-Castronuovo et al., 2021). Although Italy's healthcare system is constitutionally universal, access and effectiveness tend to be lower in the southern regions due to geographical challenges (Guidi & Berti, 2023). Migrant farmworkers face legal, administrative, and geographic barriers to healthcare access, often living in informal or segregated housing that further limits their ability to reach essential services (Corrado & Palumbo, 2022).
+
+Spatial marginalization is key to understanding how distance and isolation impede inclusion. For migrant agricultural workers, spatial separation is more than just physical distance; it signifies wider exclusion from formal care and housing systems.
+
+### Healthcare Accessibility and Geographic Isolation
+
+Healthcare access goes beyond physical proximity and also involves affordability, acceptability, and availability. For undocumented or poorly documented migrants, legal restrictions often make geographic barriers worse. Lamberti-Castronuovo et al. (2021) observed that in San Ferdinando, a settlement in Calabria, distance to healthcare was further hindered by transportation issues, language differences, and fear of authorities.
+
+Farmworkers' geographic isolation is especially severe because agricultural regions are often characterized by scarce public services. Guidi and Berti (2023) show that in Tuscany, migrant farmworkers experience both spatial and social segregation, living in informal settlements far from urban centers where healthcare and social services are mainly available.
+
+### The Political Economy of Rural Labor and Space
+
+The clustering of migrant workers in isolated agricultural regions is intentional, serving as a strategic spatial approach to sustain a flexible, inexpensive labor force while reducing visibility and integration.
+
+In Italy, the "caporalato" system — an illegal form of labor brokerage — usually dictates workers' living arrangements and access to services, adding further layers of spatial control (Guidi & Berti, 2023). This control extends to housing, where workers frequently reside in abandoned buildings, informal camps, or overcrowded spaces, often far from towns and available amenities.
+
+### Data Limitations and Methodological Considerations
+
+This project recognizes certain theoretical and methodological limitations associated with the use of OpenStreetMap data to assess migrant accessibility. Primarily, OSM's focus on formal infrastructure leads to the omission of informal settlements — such as the documented ghettos in Calabria and Lazio where many migrants live — since these areas are not marked with `landuse=residential` tags (Brovelli & Zamboni, 2018; Salvucci & Salvati, 2022). Consequently, there is a consistent underestimation of migrants' actual residential locations.
+
+Second, the analysis employs Euclidean distances rather than network-based travel distances, which may understate actual accessibility barriers, especially in mountainous areas such as Calabria. Third, relying solely on proximity as an indicator of accessibility does not account for other obstacles such as cost, documentation issues, language barriers, or transportation options. OSM data completeness is also known to be lower in rural and socially marginalized areas (Brovelli & Zamboni, 2018).
+
+Despite these limitations, spatial proximity remains a valuable indicator of potential access. Calovi and Seghieri (2018) show in their study of outpatient care in Tuscany that geographic distance significantly influences service use, even when accounting for other variables. Comparing three regions with varied economic and geographic contexts helps reveal spatial patterns that can guide policy efforts to enhance migrants' access to healthcare and formal housing.
+
+## Project Goals
+
+### Initial Goals
+
+-   Map the spatial distribution of farmland, hospitals, and residential areas across Tuscany, Lazio, and Calabria using OpenStreetMap data.
+-   Calculate Euclidean distances from agricultural zones to the nearest hospital and nearest residential area in each region.
+-   Compare regional distance patterns to identify where spatial isolation is most severe and where migrant farmworkers may face the greatest barriers to essential services.
+
+### How Goals Developed
+
+-   The initial plan relied on the Overpass API via `osmdata`, but repeated query timeouts and rate limits for large regional queries required a switch to direct `.osm.pbf` file downloads from Geofabrik via the `osmextract` package — a more robust and reproducible solution.
+-   An early goal was to map informal migrant settlements directly; this was dropped because informal "ghetti" documented across Calabria and Lazio are not tagged as `landuse=residential` in OSM, making them structurally invisible in the data. The project refocused on formal infrastructure proximity as an indirect indicator of accessibility.
+-   A secondary methodological goal emerged: to build proficiency in end-to-end reproducible spatial workflows using `sf`, `osmextract`, `ggplot2`, and `patchwork` in R, consistent with principles of open and reproducible spatial data science (Brunsdon & Comber, 2021).
+
+### Research Questions
+
+1.  Where are the major clusters of agricultural farmland in the three regions?
+2.  How far are these agricultural areas from the nearest hospitals and residential areas?
+3.  Do some regions show greater spatial isolation that could indicate weaker access to services for migrant farm laborers?
+
+## Data Sources and Acquisition
+
+The primary data source is OpenStreetMap, accessed via the `osmdata` package in R. OpenStreetMap is a collaboratively edited global spatial database, and `osmdata` provides reproducible access to OSM features through the Overpass API. Where Overpass API queries were not feasible for large regions, `.osm.pbf` extracts were downloaded directly from Geofabrik. Three OSM tag categories are central to this project:
+
+-   `landuse=farmland` — representing agricultural areas where migrant labor is likely concentrated
+-   `amenity=hospital` — representing formal healthcare facilities
+-   `landuse=residential` — representing formal residential zones
+
+Regional administrative boundaries are obtained directly from OSM via Nominatim using the `osmdata::getbb()` function with `format_out = "sf_polygon"`, which returns each region's official boundary polygon without requiring a separate Overpass query. All OSM data are openly licensed under the Open Database License (ODbL), making them appropriate for an academic course project repository with proper attribution.
+
+### Data Quality Considerations
+
+OSM coverage and tag completeness differ across regions. Calabria, with a lower contributor density than Tuscany, may have fewer mapped farmland polygons and healthcare facilities. Informal housing, including the ghettos documented in parts of Calabria and Lazio, is not tagged as `landuse=residential` in OSM. This is acknowledged as a structural limitation of the data source, consistent with findings that OSM completeness is lower in rural and socially marginalized areas.
+
+## Workflow — Three Stages
+
+### Stage 1: Data Acquisition and Mapping
+
+Regional boundaries are sourced from OSM through Nominatim. Features like farmland, hospitals, and residential zones are extracted for each region using the Overpass API via `osmdata` or directly from Geofabrik `.osm.pbf` files via `osmextract`. The initial maps display the spatial distribution of each feature type across the three study regions.
+
+### Stage 2: Distance Analysis
+
+All features are mapped onto a shared metric coordinate system (EPSG:32632, UTM Zone 32N). Distances from the centers of agricultural zones to the closest hospital and residential areas are calculated with `sf::st_distance()`. For each region, summary metrics such as median distances and the percentage of farmland exceeding specific thresholds (5 km and 10 km) are determined.
+
+### Stage 3: Comparative Visualization
+
+The results are shown through side-by-side regional maps, tables, and boxplots to illustrate differences in spatial isolation across Tuscany, Lazio, and Calabria. This methodology customizes standard spatial accessibility techniques to suit the context of migrant agricultural labor in Italy. The workflow is manageable within a semester using common R spatial tools and publicly accessible data.
+
+### Anticipated Challenges
+
+Queries to the Overpass API for large regions can be slow or unreliable. The quality of OSM data varies by region. Euclidean distances are used instead of road network distances, which may underestimate travel times in hilly or mountainous areas.
+
+## Study Area Overview
+
+The map below shows Italy's NUTS-2 administrative boundaries downloaded via the `giscoR` package, with the three study regions — Tuscany, Lazio, and Calabria — highlighted.
+
+```{r}
+#| echo: false
+#| eval: false
+library(giscoR)
+library(sf)
+library(dplyr)
+library(ggplot2)
+library(grid)
+
+# 1. Download Italy NUTS-2 regions
+nuts2 <- giscoR::gisco_get_nuts(
+  year       = "2021",
+  epsg       = 4326,
+  resolution = "03",
+  nuts_level = 2,
+  country    = "IT"
+)
+
+# 2. Tag the correct study regions
+italy_regions <- nuts2 |>
+  mutate(
+    study_region = case_when(
+      NUTS_ID == "ITI1" ~ "Tuscany",
+      NUTS_ID == "ITI4" ~ "Lazio",
+      NUTS_ID == "ITF6" ~ "Calabria",
+      TRUE ~ "Other"
+    )
+  )
+
+# 3. Project to a better CRS for Italy mapping
+italy_proj <- italy_regions |>
+  st_transform(32632)
+
+# 4. Colors
+study_colors <- c(
+  "Tuscany"  = "#756bb1",
+  "Lazio"    = "#1b9e77",
+  "Calabria" = "#e67e22",
+  "Other"    = "grey90"
+)
+
+study_borders <- c(
+  "Tuscany"  = "#756bb1",
+  "Lazio"    = "#1b9e77",
+  "Calabria" = "#e67e22",
+  "Other"    = "grey70"
+)
+
+# 5. Create label points safely
+label_points <- italy_proj |>
+  filter(study_region != "Other") |>
+  st_point_on_surface()
+
+# 6. Make the map
+italy_overview_map <- ggplot(italy_proj) +
+  geom_sf(
+    aes(fill = study_region, color = study_region),
+    linewidth = 0.35
+  ) +
+  scale_fill_manual(
+    values = study_colors,
+    breaks = c("Tuscany", "Lazio", "Calabria"),
+    name   = "Study region"
+  ) +
+  scale_color_manual(
+    values = study_borders,
+    guide  = "none"
+  ) +
+  geom_sf_label(
+    data = label_points,
+    aes(label = study_region),
+    size      = 3.5,
+    fontface  = "bold",
+    fill      = "white",
+    color     = "grey20",
+    alpha     = 0.85,
+    linewidth = 0.2
+  ) +
+  coord_sf(
+    xlim = c(
+      st_bbox(italy_proj)["xmin"] - 20000,
+      st_bbox(italy_proj)["xmax"] + 20000
+    ),
+    ylim = c(
+      st_bbox(italy_proj)["ymin"] - 20000,
+      st_bbox(italy_proj)["ymax"] + 20000
+    )
+  ) +
+  theme_void(base_size = 13) +
+  labs(
+    title    = "Study Regions — Italy",
+    subtitle = "Tuscany, Lazio, and Calabria",
+    caption  = "Source: Eurostat NUTS-2 boundaries via giscoR | CRS: EPSG:32632"
+  ) +
+  theme(
+    plot.title      = element_text(size = 12, face = "bold", hjust = 0.5),
+    plot.subtitle   = element_text(size = 8, hjust = 0.5, color = "grey40"),
+    plot.caption    = element_text(size = 7, hjust = 0.5, color = "grey55"),
+    legend.position = "bottom",
+    legend.title    = element_text(size = 9, face = "bold"),
+    legend.text     = element_text(size = 9),
+    plot.margin     = margin(10, 10, 10, 10)
+  ) +
+  guides(
+    fill = guide_legend(
+      nrow         = 1,
+      keywidth     = unit(1.2, "cm"),
+      override.aes = list(color = "white", linewidth = 0)
+    )
+  )
+
+italy_overview_map
+dir.create("outputs", showWarnings = FALSE)
+
+ggsave(
+  filename = "outputs/italy_study_regions_overview.png",
+  plot     = italy_overview_map,
+  width    = 8,
+  height   = 11,
+  dpi      = 300,
+  bg       = "white"
+)
+ 
+```
+
+```{r}
+#| echo: false
+#| eval: false
+# ============================================================
+# AUTOMATED DATA PREPARATION FOR FINAL ANALYSIS
+# Downloads OSM data, extracts features, cleans geometries,
+# and calculates farmland distances to hospitals/residential areas
+# ============================================================
+
+# ------------------------------------------------------------
+# 0. Load packages
+# ------------------------------------------------------------
+
+library(sf)
+library(osmextract)
+library(osmdata)
+library(dplyr)
+library(purrr)
+library(tibble)
+
+options(timeout = 1000)
+
+# ------------------------------------------------------------
+# 1. Create project folders
+# ------------------------------------------------------------
+
+dir.create("../data", showWarnings = FALSE)
+dir.create("../data/raw", showWarnings = FALSE, recursive = TRUE)
+dir.create("../data/processed", showWarnings = FALSE, recursive = TRUE)
+dir.create("../outputs", showWarnings = FALSE)
+
+# ------------------------------------------------------------
+# 2. Download Geofabrik .osm.pbf files
+# ------------------------------------------------------------
+
+centro_pbf <- "../data/raw/centro-latest.osm.pbf"
+sud_pbf    <- "../data/raw/sud-latest.osm.pbf"
+
+if (!file.exists(centro_pbf)) {
+  download.file(
+    url = "https://download.geofabrik.de/europe/italy/centro-latest.osm.pbf",
+    destfile = centro_pbf,
+    mode = "wb"
+  )
+}
+
+if (!file.exists(sud_pbf)) {
+  download.file(
+    url = "https://download.geofabrik.de/europe/italy/sud-latest.osm.pbf",
+    destfile = sud_pbf,
+    mode = "wb"
+  )
+}
+
+stopifnot(file.exists(centro_pbf))
+stopifnot(file.exists(sud_pbf))
+
+# ------------------------------------------------------------
+# 3. Define study regions and corresponding PBF files
+# ------------------------------------------------------------
+
+regions <- c(
+  Tuscany  = "Tuscany, Italy",
+  Lazio    = "Lazio, Italy",
+  Calabria = "Calabria, Italy"
+)
+
+region_files <- list(
+  Tuscany  = centro_pbf,
+  Lazio    = centro_pbf,
+  Calabria = sud_pbf
+)
+
+# ------------------------------------------------------------
+# 4. Download regional boundaries from OSM/Nominatim
+# ------------------------------------------------------------
+
+get_boundary <- function(region_name) {
+  
+  boundary <- getbb(
+    region_name,
+    format_out = "sf_polygon"
+  )
+  
+  if (is.list(boundary) && !inherits(boundary, "sf")) {
+    boundary <- boundary[[1]]
+  }
+  
+  st_as_sf(boundary)
+}
+
+boundaries <- map(regions, get_boundary)
+
+all_bounds <- imap(boundaries, function(boundary_sf, region_label) {
+  st_sf(
+    region = region_label,
+    geometry = st_geometry(boundary_sf)
+  )
+}) |>
+  bind_rows() |>
+  st_transform(4326)
+
+saveRDS(all_bounds, "../data/raw/regional_boundaries.rds")
+
+# ------------------------------------------------------------
+# 5. Function to extract OSM features locally from PBF files
+# ------------------------------------------------------------
+
+extract_osm_feature <- function(region_label, key, value, layer) {
+  
+  message("Extracting ", key, " = ", value, " for ", region_label)
+  
+  region_boundary <- all_bounds |>
+    filter(region == region_label) |>
+    st_transform(4326)
+  
+  pbf_file <- region_files[[region_label]]
+  
+  feature_data <- oe_read(
+    file_path = pbf_file,
+    layer = layer,
+    boundary = region_boundary,
+    boundary_type = "clipsrc",
+    extra_tags = key,
+    quiet = FALSE
+  )
+  
+  feature_data |>
+    filter(.data[[key]] == value) |>
+    mutate(region = region_label)
+}
+
+# ------------------------------------------------------------
+# 6. Extract raw OSM features needed by final report
+# ------------------------------------------------------------
+
+farmland_all <- map_dfr(names(regions), function(region_label) {
+  extract_osm_feature(
+    region_label = region_label,
+    key = "landuse",
+    value = "farmland",
+    layer = "multipolygons"
+  )
+})
+
+saveRDS(farmland_all, "../data/raw/farmland_all.rds")
+
+residential_all <- map_dfr(names(regions), function(region_label) {
+  extract_osm_feature(
+    region_label = region_label,
+    key = "landuse",
+    value = "residential",
+    layer = "multipolygons"
+  )
+})
+
+saveRDS(residential_all, "../data/raw/residential_all.rds")
+
+hospital_points <- map_dfr(names(regions), function(region_label) {
+  extract_osm_feature(
+    region_label = region_label,
+    key = "amenity",
+    value = "hospital",
+    layer = "points"
+  )
+})
+
+saveRDS(hospital_points, "../data/raw/hospital_points.rds")
+
+hospital_polygons <- map_dfr(names(regions), function(region_label) {
+  extract_osm_feature(
+    region_label = region_label,
+    key = "amenity",
+    value = "hospital",
+    layer = "multipolygons"
+  )
+})
+
+saveRDS(hospital_polygons, "../data/raw/hospital_polygons.rds")
+
+hospital_polygons_points <- hospital_polygons |>
+  st_make_valid() |>
+  st_point_on_surface()
+
+hospitals_all <- bind_rows(
+  hospital_points,
+  hospital_polygons_points
+)
+
+saveRDS(hospitals_all, "../data/raw/hospitals_all.rds")
+
+# ------------------------------------------------------------
+# 7. Save raw extraction counts
+# ------------------------------------------------------------
+
+osm_counts <- tibble(
+  dataset = c(
+    "farmland polygons",
+    "residential polygons",
+    "hospital points",
+    "hospital polygons",
+    "all hospitals"
+  ),
+  features = c(
+    nrow(farmland_all),
+    nrow(residential_all),
+    nrow(hospital_points),
+    nrow(hospital_polygons),
+    nrow(hospitals_all)
+  )
+)
+
+print(osm_counts)
+
+write.csv(
+  osm_counts,
+  "../outputs/osm_download_counts.csv",
+  row.names = FALSE
+)
+
+osm_raw <- list(
+  boundaries = all_bounds,
+  farmland = farmland_all,
+  residential = residential_all,
+  hospital_points = hospital_points,
+  hospital_polygons = hospital_polygons,
+  hospitals = hospitals_all
+)
+
+saveRDS(osm_raw, "../data/raw/osm_raw_regions.rds")
+
+# ============================================================
+# STEP 2: CLEAN SPATIAL DATA
+# ============================================================
+
+target_crs <- 32632
+
+# ------------------------------------------------------------
+# 8. Clean farmland polygons
+# ------------------------------------------------------------
+
+farmland_clean <- farmland_all |>
+  st_make_valid() |>
+  st_collection_extract("POLYGON") |>
+  st_transform(target_crs) |>
+  mutate(
+    farmland_id = row_number(),
+    farmland_area_km2 = as.numeric(st_area(geometry)) / 1000000
+  ) |>
+  filter(farmland_area_km2 > 0)
+
+saveRDS(farmland_clean, "../data/processed/farmland_clean.rds")
+
+# ------------------------------------------------------------
+# 9. Clean residential polygons
+# ------------------------------------------------------------
+
+residential_clean <- residential_all |>
+  st_make_valid() |>
+  st_collection_extract("POLYGON") |>
+  st_transform(target_crs) |>
+  mutate(
+    residential_id = row_number(),
+    residential_area_km2 = as.numeric(st_area(geometry)) / 1000000
+  ) |>
+  filter(residential_area_km2 > 0)
+
+saveRDS(residential_clean, "../data/processed/residential_clean.rds")
+
+# ------------------------------------------------------------
+# 10. Clean hospitals
+# ------------------------------------------------------------
+
+hospitals_clean <- hospitals_all |>
+  st_make_valid() |>
+  st_transform(target_crs) |>
+  st_point_on_surface() |>
+  mutate(
+    hospital_id = row_number()
+  )
+
+saveRDS(hospitals_clean, "../data/processed/hospitals_clean.rds")
+
+# ------------------------------------------------------------
+# 11. Clean regional boundaries
+# ------------------------------------------------------------
+
+bounds_clean <- all_bounds |>
+  st_make_valid() |>
+  st_transform(target_crs)
+
+saveRDS(bounds_clean, "../data/processed/bounds_clean.rds")
+
+# ------------------------------------------------------------
+# 12. Save cleaned data counts
+# ------------------------------------------------------------
+
+clean_counts <- tibble(
+  dataset = c(
+    "farmland_clean",
+    "residential_clean",
+    "hospitals_clean",
+    "bounds_clean"
+  ),
+  features = c(
+    nrow(farmland_clean),
+    nrow(residential_clean),
+    nrow(hospitals_clean),
+    nrow(bounds_clean)
+  )
+)
+
+print(clean_counts)
+
+write.csv(
+  clean_counts,
+  "../outputs/cleaned_data_counts.csv",
+  row.names = FALSE
+)
+
+# ============================================================
+# STEP 3: CALCULATE DISTANCES
+# ============================================================
+
+# ------------------------------------------------------------
+# 13. Make sure all layers share the same CRS
+# ------------------------------------------------------------
+
+farmland_clean <- farmland_clean |>
+  st_make_valid() |>
+  st_transform(target_crs)
+
+residential_clean <- residential_clean |>
+  st_make_valid() |>
+  st_transform(target_crs)
+
+hospitals_clean <- hospitals_clean |>
+  st_make_valid() |>
+  st_transform(target_crs)
+
+bounds_clean <- bounds_clean |>
+  st_make_valid() |>
+  st_transform(target_crs)
+
+# ------------------------------------------------------------
+# 14. Function to calculate nearest distance by region
+# ------------------------------------------------------------
+
+calculate_distance_by_region <- function(farmland_data, target_data, distance_column_name) {
+  
+  output_list <- list()
+  
+  for (r in unique(farmland_data$region)) {
+    
+    message("Calculating ", distance_column_name, " for ", r)
+    
+    farmland_region <- farmland_data |>
+      filter(region == r) |>
+      st_transform(target_crs)
+    
+    target_region <- target_data |>
+      filter(region == r) |>
+      st_transform(target_crs)
+    
+    if (nrow(target_region) == 0) {
+      farmland_region[[distance_column_name]] <- NA_real_
+      output_list[[r]] <- farmland_region
+      next
+    }
+    
+    nearest_index <- st_nearest_feature(
+      farmland_region,
+      target_region
+    )
+    
+    distances_m <- st_distance(
+      farmland_region,
+      target_region[nearest_index, ],
+      by_element = TRUE
+    )
+    
+    farmland_region[[distance_column_name]] <- as.numeric(distances_m) / 1000
+    
+    output_list[[r]] <- farmland_region
+  }
+  
+  bind_rows(output_list)
+}
+
+# ------------------------------------------------------------
+# 15. Calculate farmland-to-hospital distances
+# ------------------------------------------------------------
+
+farmland_distances <- calculate_distance_by_region(
+  farmland_data = farmland_clean,
+  target_data = hospitals_clean,
+  distance_column_name = "distance_to_hospital_km"
+)
+
+# ------------------------------------------------------------
+# 16. Calculate farmland-to-residential distances
+# ------------------------------------------------------------
+
+farmland_distances <- calculate_distance_by_region(
+  farmland_data = farmland_distances,
+  target_data = residential_clean,
+  distance_column_name = "distance_to_residential_km"
+)
+
+# ------------------------------------------------------------
+# 17. Add distance categories
+# ------------------------------------------------------------
+
+farmland_distances <- farmland_distances |>
+  mutate(
+    hospital_distance_category = case_when(
+      distance_to_hospital_km <= 5 ~ "0-5 km",
+      distance_to_hospital_km <= 10 ~ "5-10 km",
+      distance_to_hospital_km <= 20 ~ "10-20 km",
+      distance_to_hospital_km > 20 ~ "20+ km",
+      TRUE ~ NA_character_
+    ),
+    
+    residential_distance_category = case_when(
+      distance_to_residential_km <= 5 ~ "0-5 km",
+      distance_to_residential_km <= 10 ~ "5-10 km",
+      distance_to_residential_km <= 20 ~ "10-20 km",
+      distance_to_residential_km > 20 ~ "20+ km",
+      TRUE ~ NA_character_
+    )
+  )
+
+saveRDS(farmland_distances, "../data/processed/farmland_distances.rds")
+
+# ------------------------------------------------------------
+# 18. Create and save regional summary table
+# ------------------------------------------------------------
+
+summary_by_region <- farmland_distances |>
+  st_drop_geometry() |>
+  group_by(region) |>
+  summarise(
+    farmland_count = n(),
+    total_farmland_area_km2 = sum(farmland_area_km2, na.rm = TRUE),
+    
+    median_hospital_distance_km = median(distance_to_hospital_km, na.rm = TRUE),
+    mean_hospital_distance_km = mean(distance_to_hospital_km, na.rm = TRUE),
+    pct_over_5km_hospital = mean(distance_to_hospital_km > 5, na.rm = TRUE) * 100,
+    pct_over_10km_hospital = mean(distance_to_hospital_km > 10, na.rm = TRUE) * 100,
+    
+    median_residential_distance_km = median(distance_to_residential_km, na.rm = TRUE),
+    mean_residential_distance_km = mean(distance_to_residential_km, na.rm = TRUE),
+    pct_over_5km_residential = mean(distance_to_residential_km > 5, na.rm = TRUE) * 100,
+    pct_over_10km_residential = mean(distance_to_residential_km > 10, na.rm = TRUE) * 100
+  )
+
+print(summary_by_region)
+
+write.csv(
+  summary_by_region,
+  "../outputs/summary_by_region.csv",
+  row.names = FALSE
+)
+
+# ------------------------------------------------------------
+# 19. Save final combined outputs
+# ------------------------------------------------------------
+
+final_outputs <- list(
+  farmland_distances = farmland_distances,
+  summary_by_region = summary_by_region,
+  clean_counts = clean_counts,
+  osm_counts = osm_counts
+)
+
+saveRDS(final_outputs, "../data/processed/final_outputs_step3.rds")
+
+message("Data preparation complete. Files are ready for the Quarto analysis.")
+```
+
+## Methods
+
+The analysis proceeds in three stages: data acquisition and feature extraction (Stage 1), geometry cleaning and CRS harmonization (Stage 2), and distance calculation with comparative visualization (Stage 3). All vector spatial operations use the `sf` package.
+
+```{r}
+#| label: load-packages
+#| echo: false
+#| eval: false
+
+library(sf)
+library(dplyr)
+library(ggplot2)
+library(tibble)
+library(scales)
+library(patchwork)
+library(gtsummary)
+```
+
+### Stage 1: Data Acquisition and Mapping
+
+Raw OSM features were downloaded from Geofabrik and loaded from pre-saved `.rds` files. The table below summarizes the number of features extracted for each data category.
+
+```{r}
+#| label: load-raw-data
+#| echo: false
+#| eval: false
+
+# Load raw OSM data
+farmland_all    <- readRDS("../data/raw/farmland_all.rds")
+residential_all <- readRDS("../data/raw/residential_all.rds")
+hospitals_all   <- readRDS("../data/raw/hospitals_all.rds")
+all_bounds      <- readRDS("../data/raw/regional_boundaries.rds")
+```
+
+The table below summarizes the number of features extracted from OSM for each data category.
+
+```{r}
+#| label: tbl-osm-counts
+#| echo: false
+#| eval: false
+#| tbl-cap: "Count of features extracted from OpenStreetMap"
+library(tibble)
+
+osm_counts <- tibble(
+  Dataset = c(
+    "Farmland polygons",
+    "Residential polygons",
+    "Hospital points",
+    "All hospitals (points + polygon centroids)"
+  ),
+  Features = c(
+    nrow(farmland_all),
+    nrow(residential_all),
+    133,
+    nrow(hospitals_all)
+  )
+)
+
+knitr::kable(osm_counts)
+```
+
+### Study Region Boundaries
+
+The map below shows the three study regions used in this analysis.
+
+```{r}
+#| echo: false
+#| eval: false
+library(sf)
+library(dplyr)
+library(ggplot2)
+library(patchwork)
+
+# Function to make one region map with a tight zoom
+make_region_boundary_map <- function(region_name) {
+  
+  region_data <- all_bounds |>
+    filter(region == region_name)
+  
+  bb <- st_bbox(region_data)
+  
+  xpad <- as.numeric(bb["xmax"] - bb["xmin"]) * 0.08
+  ypad <- as.numeric(bb["ymax"] - bb["ymin"]) * 0.08
+  
+  ggplot(region_data) +
+    geom_sf(fill = "grey95", color = "grey30", linewidth = 0.6) +
+    coord_sf(
+      xlim = c(as.numeric(bb["xmin"]) - xpad, as.numeric(bb["xmax"]) + xpad),
+      ylim = c(as.numeric(bb["ymin"]) - ypad, as.numeric(bb["ymax"]) + ypad),
+      expand = FALSE
+    ) +
+    labs(title = region_name) +
+    theme_void(base_size = 12) +
+    theme(
+      plot.title = element_text(size = 13, face = "bold", hjust = 0.5),
+      plot.margin = margin(5, 5, 5, 5)
+    )
+}
+
+calabria_map <- make_region_boundary_map("Calabria")
+lazio_map    <- make_region_boundary_map("Lazio")
+tuscany_map  <- make_region_boundary_map("Tuscany")
+
+study_regions_map <- calabria_map + lazio_map + tuscany_map +
+  plot_layout(ncol = 3) +
+  plot_annotation(
+    title = "Study Regions",
+    caption = "Source: OpenStreetMap via Nominatim"
+  ) &
+  theme(
+    plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
+    plot.subtitle = element_text(size = 12, hjust = 0.5),
+    plot.caption = element_text(size = 9, hjust = 0.5)
+  )
+
+study_regions_map
+```
+
+### Raw Feature Overview
+
+The following map displays all extracted OSM features before cleaning --- farmland in green, residential areas in grey, and hospitals as red points.
+
+```{r}
+#| label: fig-raw-features
+#| echo: false
+#| eval: false
+#| fig-cap: "All extracted OSM features by region before cleaning"
+#| fig-width: 15
+#| fig-height: 6
+
+library(patchwork)
+
+make_raw_feature_map <- function(region_name) {
+  
+  region_boundary <- all_bounds |>
+    filter(region == region_name)
+  
+  region_farmland <- farmland_all |>
+    filter(region == region_name)
+  
+  region_residential <- residential_all |>
+    filter(region == region_name)
+  
+  region_hospitals <- hospitals_all |>
+    filter(region == region_name)
+  
+  bb <- st_bbox(region_boundary)
+  
+  xpad <- as.numeric(bb["xmax"] - bb["xmin"]) * 0.08
+  ypad <- as.numeric(bb["ymax"] - bb["ymin"]) * 0.08
+  
+  ggplot() +
+    geom_sf(
+      data = region_boundary,
+      fill = NA,
+      color = "black",
+      linewidth = 0.5
+    ) +
+    geom_sf(
+      data = region_farmland,
+      fill = "darkolivegreen3",
+      color = NA,
+      alpha = 0.6
+    ) +
+    geom_sf(
+      data = region_residential,
+      fill = "grey70",
+      color = NA,
+      alpha = 0.5
+    ) +
+    geom_sf(
+      data = region_hospitals,
+      color = "red",
+      size = 1.2
+    ) +
+    coord_sf(
+      xlim = c(as.numeric(bb["xmin"]) - xpad, as.numeric(bb["xmax"]) + xpad),
+      ylim = c(as.numeric(bb["ymin"]) - ypad, as.numeric(bb["ymax"]) + ypad),
+      expand = FALSE
+    ) +
+    labs(title = region_name) +
+    theme_void(base_size = 12) +
+    theme(
+      plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+      plot.margin = margin(5, 5, 5, 5)
+    )
+}
+
+raw_calabria <- make_raw_feature_map("Calabria")
+raw_lazio    <- make_raw_feature_map("Lazio")
+raw_tuscany  <- make_raw_feature_map("Tuscany")
+
+raw_features_map <- raw_calabria + raw_lazio + raw_tuscany +
+  plot_layout(ncol = 3) +
+  plot_annotation(
+    title = "Extracted OSM Features",
+    subtitle = "Farmland, residential areas, and hospitals",
+    caption = "Source: OpenStreetMap via Geofabrik and osmextract"
+  ) &
+  theme(
+    plot.title = element_text(size = 18, face = "bold", hjust = 0.5),
+    plot.subtitle = element_text(size = 12, hjust = 0.5, color = "grey40"),
+    plot.caption = element_text(size = 12, hjust = 0.5, color = "grey45")
+  )
+
+raw_features_map
+```
+
+### Stage 2: Data Cleaning and Preparation
+
+The raw OSM data required several cleaning steps before analysis. All geometries were validated with `st_make_valid()`, geometry collections were extracted to pure polygon types, and all layers were projected to EPSG:32632 (UTM Zone 32N) for accurate distance calculations in meters. For farmland and residential polygons, area was computed in square kilometers, and features with zero area were removed. Hospital polygons were converted to representative points using `st_point_on_surface()` and then combined with existing hospital point features.
+
+```{r}
+#| label: load-cleaned-data
+#| echo: false
+#| eval: false
+
+# Load cleaned and processed data
+farmland_clean    <- readRDS("../data/processed/farmland_clean.rds")
+residential_clean <- readRDS("../data/processed/residential_clean.rds")
+hospitals_clean   <- readRDS("../data/processed/hospitals_clean.rds")
+bounds_clean      <- readRDS("../data/processed/bounds_clean.rds")
+```
+
+```{r}
+#| label: tbl-cleaned-counts
+#| echo: false
+#| eval: false
+#| tbl-cap: "Count of features after cleaning"
+
+clean_counts <- tibble(
+  Dataset = c(
+    "Farmland (cleaned)",
+    "Residential (cleaned)",
+    "Hospitals (cleaned)",
+    "Regional boundaries"
+  ),
+  Features = c(
+    nrow(farmland_clean),
+    nrow(residential_clean),
+    nrow(hospitals_clean),
+    nrow(bounds_clean)
+  )
+)
+
+knitr::kable(clean_counts)
+```
+
+```{r}
+#| label: fig-cleaned-features
+#| echo: false
+#| eval: false
+#| fig-cap: "Cleaned OSM features by region"
+#| fig-width: 15
+#| fig-height: 6
+
+library(patchwork)
+
+make_clean_feature_map <- function(region_name) {
+  
+  region_boundary <- bounds_clean |>
+    filter(region == region_name)
+  
+  region_farmland <- farmland_clean |>
+    filter(region == region_name)
+  
+  region_residential <- residential_clean |>
+    filter(region == region_name)
+  
+  region_hospitals <- hospitals_clean |>
+    filter(region == region_name)
+  
+  bb <- st_bbox(region_boundary)
+  
+  xpad <- as.numeric(bb["xmax"] - bb["xmin"]) * 0.08
+  ypad <- as.numeric(bb["ymax"] - bb["ymin"]) * 0.08
+  
+  ggplot() +
+    geom_sf(
+      data = region_boundary,
+      fill = NA,
+      color = "black",
+      linewidth = 0.5
+    ) +
+    geom_sf(
+      data = region_farmland,
+      fill = "darkolivegreen3",
+      color = NA,
+      alpha = 0.6
+    ) +
+    geom_sf(
+      data = region_residential,
+      fill = "grey70",
+      color = NA,
+      alpha = 0.5
+    ) +
+    geom_sf(
+      data = region_hospitals,
+      color = "red",
+      size = 1.2
+    ) +
+    coord_sf(
+      xlim = c(as.numeric(bb["xmin"]) - xpad, as.numeric(bb["xmax"]) + xpad),
+      ylim = c(as.numeric(bb["ymin"]) - ypad, as.numeric(bb["ymax"]) + ypad),
+      expand = FALSE
+    ) +
+    labs(title = region_name) +
+    theme_void(base_size = 12) +
+    theme(
+      plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+      plot.margin = margin(5, 5, 5, 5)
+    )
+}
+
+clean_calabria <- make_clean_feature_map("Calabria")
+clean_lazio    <- make_clean_feature_map("Lazio")
+clean_tuscany  <- make_clean_feature_map("Tuscany")
+
+clean_features_map <- clean_calabria + clean_lazio + clean_tuscany +
+  plot_layout(ncol = 3) +
+  plot_annotation(
+    title = "Cleaned OSM Features",
+    subtitle = "Farmland, residential areas, and hospitals",
+    caption = "Source: OpenStreetMap via Geofabrik and osmextract"
+  ) &
+  theme(
+    plot.title = element_text(size = 18, face = "bold", hjust = 0.5),
+    plot.subtitle = element_text(size = 12, hjust = 0.5, color = "grey40"),
+    plot.caption = element_text(size = 9, hjust = 0.5, color = "grey45")
+  )
+
+clean_features_map
+```
+
+### Stage 3: Distance Calculations
+
+For each farmland polygon, the nearest hospital and nearest residential area within the same region were identified using `st_nearest_feature()`. The Euclidean distance to each nearest feature was then computed using `st_distance()` and converted from meters to kilometers.
+
+Distance categories were assigned to each farmland polygon: 0–5 km, 5–10 km, 10–20 km, and 20+ km. These thresholds provide a framework for interpreting accessibility — distances beyond 5 km are generally considered barriers to walking access, and distances beyond 10–20 km may represent significant travel burdens for populations without reliable transportation.
+
+```{r}
+#| label: load-distances
+#| echo: false
+#| eval: false
+
+# Load the pre-computed distance dataset
+farmland_distances <- readRDS("../data/processed/farmland_distances.rds")
+```
+
+## Results
+
+### Summary Statistics by Region
+
+The table below presents key summary statistics for farmland-to-hospital and farmland-to-residential distances across the three study regions.
+
+```{r}
+#| label: tbl-summary-region
+#| echo: false
+#| eval: false
+#| tbl-cap: "Summary of farmland distances to hospitals and residential areas by region"
+
+summary_by_region <- farmland_distances |>
+  st_drop_geometry() |>
+  group_by(region) |>
+  summarise(
+    `Farmland count` = n(),
+    `Total area (km2)` = round(sum(farmland_area_km2, na.rm = TRUE), 1),
+    `Median hosp. dist. (km)` = round(median(distance_to_hospital_km, na.rm = TRUE), 2),
+    `Mean hosp. dist. (km)` = round(mean(distance_to_hospital_km, na.rm = TRUE), 2),
+    `% > 5 km (hosp.)` = round(mean(distance_to_hospital_km > 5, na.rm = TRUE) * 100, 1),
+    `% > 10 km (hosp.)` = round(mean(distance_to_hospital_km > 10, na.rm = TRUE) * 100, 1),
+    `Median resid. dist. (km)` = round(median(distance_to_residential_km, na.rm = TRUE), 2),
+    `Mean resid. dist. (km)` = round(mean(distance_to_residential_km, na.rm = TRUE), 2),
+    `% > 5 km (resid.)` = round(mean(distance_to_residential_km > 5, na.rm = TRUE) * 100, 1)
+  )
+
+knitr::kable(summary_by_region)
+```
+
+### Detailed Comparison Table
+
+```{r}
+#| label: tbl-gtsummary
+#| echo: false
+#| eval: false
+#| tbl-cap: "Distribution of farmland area and distances by region (median with IQR)"
+library(gtsummary)
+farmland_distances |>
+  st_drop_geometry() |>
+  select(
+    region,
+    farmland_area_km2,
+    distance_to_hospital_km,
+    distance_to_residential_km
+  ) |>
+  tbl_summary(
+    by = region,
+    label = list(
+      farmland_area_km2 ~ "Farmland area (km2)",
+      distance_to_hospital_km ~ "Distance to hospital (km)",
+      distance_to_residential_km ~ "Distance to residential area (km)"
+    ),
+    statistic = list(
+      all_continuous() ~ "{median} ({p25}, {p75})"
+    ),
+    digits = all_continuous() ~ 2
+  ) |>
+  modify_header(label = "**Variable**") |>
+  bold_labels()
+```
+
+### Hospital Distance Analysis
+
+#### Boxplot: Distance from Farmland to Nearest Hospital
+
+The boxplot below shows the distribution of distances from farmland polygons to the nearest hospital in each region. The white diamond indicates the mean, and the horizontal line inside each box is the median.
+
+```{r}
+#| label: fig-hospital-boxplot
+#| echo: false
+#| eval: false
+#| fig-cap: "Distribution of farmland-to-hospital distances by region"
+#| fig-width: 11
+#| fig-height: 7
+
+library(scales)
+hospital_boxplot_data <- farmland_distances |>
+  st_drop_geometry() |>
+  filter(region %in% c("Calabria", "Lazio", "Tuscany")) |>
+  mutate(
+    region = factor(region, levels = c("Calabria", "Lazio", "Tuscany"))
+  )
+
+ggplot(
+  hospital_boxplot_data,
+  aes(x = region, y = distance_to_hospital_km, fill = region)
+) +
+  geom_boxplot(
+    width = 0.55,
+    linewidth = 0.9,
+    alpha = 0.9,
+    outlier.shape = 16,
+    outlier.size = 1.3,
+    outlier.alpha = 0.25,
+    outlier.colour = "black"
+  ) +
+  stat_summary(
+    fun = mean,
+    geom = "point",
+    shape = 23,
+    size = 4,
+    fill = "white",
+    color = "black",
+    stroke = 1.1
+  ) +
+  scale_fill_manual(
+    values = c(
+      "Calabria" = "#E67E22",
+      "Lazio"    = "#2AA889",
+      "Tuscany"  = "#7E79B8"
+    )
+  ) +
+  scale_y_continuous(
+    labels = label_number(accuracy = 1),
+    expand = expansion(mult = c(0.02, 0.06))
+  ) +
+  labs(
+    title = "Distance from Farmland to Nearest Hospital",
+    subtitle = "Distribution by region with outliers shown",
+    x = "Region",
+    y = "Distance to nearest hospital (km)",
+    caption = "Boxes = IQR; line = median; diamond = mean; dots = outliers."
+  ) +
+  theme_minimal(base_size = 16) +
+  theme(
+    legend.position = "none",
+    plot.title = element_text(size = 22, face = "bold", hjust = 0.5),
+    plot.subtitle = element_text(size = 14, hjust = 0.5, color = "grey30"),
+    axis.title.x = element_text(size = 16, face = "bold"),
+    axis.title.y = element_text(size = 16, face = "bold"),
+    axis.text.x = element_text(size = 14, face = "bold"),
+    axis.text.y = element_text(size = 13),
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.grid.major.y = element_line(color = "grey82", linewidth = 0.6),
+    plot.caption = element_text(size = 10, hjust = 0)
+  )
+```
+
+All three regions show median hospital distances above 5 km, with Calabria exhibiting the highest median (\~6.4 km) and Lazio showing the highest mean (\~8.3 km), suggesting a longer right tail of isolated farmland in Lazio. Over 57% of farmland in all three regions is more than 5 km from the nearest hospital, and roughly a quarter of farmland exceeds 10 km.
+
+#### Map: Farmland Distance to Nearest Hospital
+
+```{r}
+#| label: fig-hospital-map
+#| echo: false
+#| eval: false
+#| fig-cap: "Farmland colored by distance to nearest hospital across the three study regions"
+#| fig-width: 18
+#| fig-height: 7
+
+target_regions <- c("Calabria", "Lazio", "Tuscany")
+
+bounds_plot <- bounds_clean |>
+  filter(region %in% target_regions)
+
+farmland_plot <- farmland_distances |>
+  filter(region %in% target_regions)
+
+# Clean distance categories for display
+farmland_plot$hospital_distance_category <- as.character(farmland_plot$hospital_distance_category)
+farmland_plot$hospital_distance_category <- gsub("\u2013", "-", farmland_plot$hospital_distance_category)
+farmland_plot$hospital_distance_category <- gsub("\\s+", " ", farmland_plot$hospital_distance_category)
+farmland_plot$hospital_distance_category <- trimws(farmland_plot$hospital_distance_category)
+
+farmland_plot$hospital_distance_category <- factor(
+  farmland_plot$hospital_distance_category,
+  levels = c("0-5 km", "5-10 km", "10-20 km", "20+ km")
+)
+
+distance_colors <- c(
+  "0-5 km"   = "#E41A1C",
+  "5-10 km"  = "#984EA3",
+  "10-20 km" = "#4DAF4A",
+  "20+ km"   = "#00BFC4"
+)
+
+make_hospital_map <- function(region_name) {
+  region_boundary <- bounds_plot |> filter(region == region_name)
+  region_farmland <- farmland_plot |> filter(region == region_name)
+  bb <- st_bbox(region_boundary)
+  xpad <- as.numeric(bb["xmax"] - bb["xmin"]) * 0.05
+  ypad <- as.numeric(bb["ymax"] - bb["ymin"]) * 0.05
+
+  ggplot() +
+    geom_sf(data = region_farmland, aes(fill = hospital_distance_category), color = NA) +
+    geom_sf(data = region_boundary, fill = NA, color = "black", linewidth = 0.7) +
+    coord_sf(
+      xlim = c(as.numeric(bb["xmin"]) - xpad, as.numeric(bb["xmax"]) + xpad),
+      ylim = c(as.numeric(bb["ymin"]) - ypad, as.numeric(bb["ymax"]) + ypad),
+      expand = FALSE
+    ) +
+    scale_fill_manual(
+      name = "Distance to nearest hospital",
+      values = distance_colors,
+      breaks = c("0-5 km", "5-10 km", "10-20 km", "20+ km"),
+      drop = FALSE,
+      na.value = "grey90"
+    ) +
+    labs(title = region_name) +
+    theme_void(base_size = 14) +
+    theme(
+      plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+      legend.position = "bottom",
+      legend.title = element_text(size = 10, face = "bold"),
+      legend.text = element_text(size = 10),
+      plot.margin = margin(5, 5, 5, 5)
+    )
+}
+
+map_calabria <- make_hospital_map("Calabria")
+map_lazio    <- make_hospital_map("Lazio")
+map_tuscany  <- make_hospital_map("Tuscany")
+
+map_calabria + map_lazio + map_tuscany +
+  plot_layout(ncol = 3, guides = "collect") +
+  plot_annotation(
+    title = "Farmland Distance to Nearest Hospital",
+    caption = "Source: OpenStreetMap via Geofabrik and osmextract"
+  ) &
+  theme(
+    plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+    plot.caption = element_text(size = 10, hjust = 0.5),
+    legend.position = "bottom"
+  )
+```
+
+The choropleth maps reveal clear spatial patterns. In Calabria, large swaths of mountainous interior farmland are over 10 km from the nearest hospital. Lazio shows a strong urban-rural divide, with farmland near Rome being close to hospitals while peripheral areas are substantially more isolated. Tuscany presents a more evenly distributed pattern, though pockets of remote farmland persist in the southern and eastern parts of the region.
+
+### Residential Area Distance Analysis
+
+#### Boxplot: Distance from Farmland to Nearest Residential Area
+
+```{r}
+#| label: fig-residential-boxplot
+#| echo: false
+#| eval: false
+#| fig-cap: "Distribution of farmland-to-residential distances by region"
+#| fig-width: 11
+#| fig-height: 7
+
+residential_boxplot_data <- farmland_distances |>
+  st_drop_geometry() |>
+  filter(region %in% c("Calabria", "Lazio", "Tuscany")) |>
+  mutate(
+    region = factor(region, levels = c("Calabria", "Lazio", "Tuscany"))
+  )
+
+ggplot(
+  residential_boxplot_data,
+  aes(x = region, y = distance_to_residential_km, fill = region)
+) +
+  geom_boxplot(
+    width = 0.55,
+    linewidth = 0.9,
+    alpha = 0.9,
+    outlier.shape = 16,
+    outlier.size = 1.3,
+    outlier.alpha = 0.25,
+    outlier.colour = "black"
+  ) +
+  stat_summary(
+    fun = mean,
+    geom = "point",
+    shape = 23,
+    size = 4,
+    fill = "white",
+    color = "black",
+    stroke = 1.1
+  ) +
+  scale_fill_manual(
+    values = c(
+      "Calabria" = "#E67E22",
+      "Lazio"    = "#2AA889",
+      "Tuscany"  = "#7E79B8"
+    )
+  ) +
+  scale_y_continuous(
+    labels = label_number(accuracy = 1),
+    expand = expansion(mult = c(0.02, 0.06))
+  ) +
+  labs(
+    title = "Distance from Farmland to Nearest Residential Area",
+    subtitle = "Distribution by region with outliers shown",
+    x = "Region",
+    y = "Distance to nearest residential area (km)",
+    caption = "Boxes = IQR; line = median; diamond = mean; dots = outliers."
+  ) +
+  theme_minimal(base_size = 16) +
+  theme(
+    legend.position = "none",
+    plot.title = element_text(size = 22, face = "bold", hjust = 0.5),
+    plot.subtitle = element_text(size = 14, hjust = 0.5, color = "grey30"),
+    axis.title.x = element_text(size = 16, face = "bold"),
+    axis.title.y = element_text(size = 16, face = "bold"),
+    axis.text.x = element_text(size = 14, face = "bold"),
+    axis.text.y = element_text(size = 13),
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.grid.major.y = element_line(color = "grey82", linewidth = 0.6),
+    plot.caption = element_text(size = 10, hjust = 0)
+  )
+```
+
+In contrast to hospital distances, farmland is generally much closer to residential areas. Median distances range from \~0.35 km (Tuscany) to \~0.77 km (Calabria). Fewer than 4% of farmland polygons in any region are more than 5 km from a residential area. This suggests that while formal residential zones tend to be geographically near farmland, this proximity does not necessarily indicate that migrant workers have access to formal housing within those zones.
+
+#### Map: Farmland Distance to Nearest Residential Area
+
+```{r}
+#| label: fig-residential-map
+#| echo: false
+#| eval: false
+#| fig-cap: "Farmland colored by distance to nearest residential area across the three study regions"
+#| fig-width: 18
+#| fig-height: 8
+
+# Clean residential distance categories
+farmland_plot$residential_distance_category <- as.character(farmland_plot$residential_distance_category)
+farmland_plot$residential_distance_category <- gsub("\u2013", "-", farmland_plot$residential_distance_category)
+farmland_plot$residential_distance_category <- gsub("\\s+", " ", farmland_plot$residential_distance_category)
+farmland_plot$residential_distance_category <- trimws(farmland_plot$residential_distance_category)
+
+farmland_plot$residential_distance_category <- factor(
+  farmland_plot$residential_distance_category,
+  levels = c("0-5 km", "5-10 km", "10-20 km", "20+ km")
+)
+
+make_residential_map <- function(region_name, show_legend = FALSE) {
+  region_boundary <- bounds_plot |> filter(region == region_name)
+  region_farmland <- farmland_plot |> filter(region == region_name)
+  bb <- st_bbox(region_boundary)
+  xpad <- as.numeric(bb["xmax"] - bb["xmin"]) * 0.05
+  ypad <- as.numeric(bb["ymax"] - bb["ymin"]) * 0.05
+
+  p <- ggplot() +
+    geom_sf(data = region_farmland, aes(fill = residential_distance_category), color = NA) +
+    geom_sf(data = region_boundary, fill = NA, color = "black", linewidth = 0.7) +
+    coord_sf(
+      xlim = c(as.numeric(bb["xmin"]) - xpad, as.numeric(bb["xmax"]) + xpad),
+      ylim = c(as.numeric(bb["ymin"]) - ypad, as.numeric(bb["ymax"]) + ypad),
+      expand = FALSE
+    ) +
+    scale_fill_manual(
+      name = "Distance to nearest residential area",
+      values = distance_colors,
+      breaks = c("0-5 km", "5-10 km", "10-20 km", "20+ km"),
+      drop = FALSE,
+      na.value = "grey90"
+    ) +
+    labs(title = region_name) +
+    theme_void(base_size = 14) +
+    theme(
+      plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
+      legend.title = element_text(size = 11, face = "bold"),
+      legend.text = element_text(size = 10),
+      plot.margin = margin(5, 5, 5, 5)
+    )
+
+  if (show_legend) {
+    p <- p +
+      theme(legend.position = "bottom") +
+      guides(fill = guide_legend(nrow = 1, byrow = TRUE, title.position = "top"))
+  } else {
+    p <- p + theme(legend.position = "none")
+  }
+  p
+}
+
+map_calabria <- make_residential_map("Calabria", show_legend = TRUE)
+map_lazio    <- make_residential_map("Lazio", show_legend = FALSE)
+map_tuscany  <- make_residential_map("Tuscany", show_legend = FALSE)
+
+map_calabria + map_lazio + map_tuscany +
+  plot_layout(ncol = 3) +
+  plot_annotation(
+    title = "Farmland Distance to Nearest Residential Area",
+    caption = "Source: OpenStreetMap via Geofabrik and osmextract"
+  ) &
+  theme(
+    plot.caption = element_text(size = 10, hjust = 0.5)
+  )
+```
+
+The residential distance maps are overwhelmingly dominated by the 0--5 km category (red), confirming that most farmland is near some formal residential zone. The few pockets of greater distance are found in Calabria's mountainous interior. This pattern reinforces a key finding: the challenge for migrant farmworkers is less about geographic proximity to residential zones and more about access to affordable, formal housing within those zones.
+
+## Discussion
+
+This analysis reveals a striking asymmetry in spatial accessibility for agricultural areas in southern and central Italy. While farmland is generally close to designated residential areas (median distances under 1 km across all regions), it is considerably farther from hospitals, with over 57% of farmland exceeding 5 km from the nearest hospital in each region.
+
+Calabria stands out with the highest median hospital distance (6.4 km) and the largest share of farmland over 5 km from a hospital (62.5%). This aligns with Calabria's documented challenges as a region with significant agricultural migrant labor, rugged terrain, and fewer healthcare facilities relative to its geographic extent (Lamberti-Castronuovo et al., 2021). Lazio, while having a slightly lower median, shows the highest mean hospital distance (8.3 km), reflecting pockets of highly isolated farmland in its peripheral areas away from Rome.
+
+Several limitations should be noted. This analysis relies on Euclidean (straight-line) distances rather than network-based travel distances, which would better reflect actual accessibility. OSM data coverage may vary by region, and not all hospitals or residential areas may be fully mapped. Furthermore, the presence of a nearby residential area does not guarantee that migrant workers can access housing there --- informal settlements and labor camps, which are common in these regions, are not typically tagged in OSM.
+
+## Challenges in Working with Data
+
+Practical challenges:
+
+-   The Overpass API — originally the planned data access method via `osmdata` — timed out repeatedly for large regional queries in Tuscany and Lazio, requiring a full redesign around Geofabrik `.osm.pbf` downloads and `osmextract`
+-   CRS mismatches between objects caused silent errors in `st_nearest_feature()` and `st_distance()`; explicit CRS enforcement before every spatial join and distance operation was necessary throughout the pipeline
+-   Hospital features are split across OSM layers (`points` and `multipolygons`), requiring separate extraction, centroid conversion for polygons via `st_point_on_surface()`, and merging into a single dataset before distance calculations
+-   `osmextract::oe_read()` returns all features for a given layer by default; key-value filtering with `extra_tags` did not pre-filter results, requiring post-hoc filtering after reading — a computationally expensive step for large `.pbf` files
+
+Conceptual challenges:
+
+-   The most significant conceptual limitation is that OSM does not tag informal migrant settlements as `landuse=residential`. The ghetti documented in Calabria and parts of Lazio — where many agricultural migrants actually reside — are structurally absent from this analysis. Distances to "residential areas" therefore reflect proximity to formal housing stock, not to actual migrant living locations. This is consistent with findings that OSM completeness is lower in rural and socially marginalized areas (Brovelli & Zamboni, 2018)
+-   Euclidean distances underestimate real travel times, especially in Calabria's mountainous interior where road networks add substantial detours beyond straight-line measures — a known limitation of proximity-based accessibility analysis
+
+------------------------------------------------------------------------
+
+## Successes in Working with Data
+
+# Key findings:
+
+-   Farmland in all three regions shows substantial distance from hospitals, with a meaningful share of agricultural zones located more than 10 km from the nearest hospital — particularly in Calabria and parts of rural Tuscany
+-   Calabria shows the highest spatial isolation across both dimensions — distance to hospitals and distance to residential areas — consistent with its documented status as one of Italy's most underserved regions for migrant labor and healthcare (Lamberti-Castronuovo et al., 2021; HRW, 2023)
+-   Lazio shows more mixed patterns, with farmland in the Agro Pontino plain showing moderate to high isolation from formal residential areas — an area historically associated with seasonal migrant agricultural labor
+-   Tuscany shows the shortest median distances to hospitals, reflecting its comparatively denser urban and healthcare network — though agricultural zones in the Val di Chiana and Maremma remain notable exceptions
+
+## Where to Learn More
+
+::: r-fit-text
+
+\*\* project data
+
+:   Geofabrik `.osm.pbf` extracts downloaded via `download.file()` in `step1_download_extract.R`; regional boundaries retrieved via `osmdata::getbb()`; all raw and processed `.rds` files stored in `data/raw/` and `data/processed/`
+
+\*\* project code
+
+:   `step1_download_extract.R` — OSM data download and feature extraction\
+    `step2_clean.R` — geometry validation, CRS harmonization, and feature cleaning\
+    `step3_distance_analysis.R` — distance calculations, summaries, choropleth maps, and boxplots\
+    `analysis.qmd` — Quarto document integrating all narrative, code, and output
+
+\## output files
+
+:   `outputs/hospital_distance_map.png` — choropleth map of farmland-to-hospital distances by region\
+    `outputs/residential_distance_map.png` — choropleth map of farmland-to-residential distances by region\
+    `outputs/hospital_distance_boxplot.png` — regional boxplot comparison for hospital distance\
+    `outputs/residential_distance_boxplot.png` — regional boxplot comparison for residential distance\
+    `outputs/summary_by_region.csv` — regional summary statistics table
+
+## Conclusion
+
+This spatial analysis provides evidence that farmland areas in Tuscany, Lazio, and Calabria regions with substantial agricultural migrant workforces face meaningful geographic barriers to hospital access. While residential areas are generally proximate to farmland, the quality and accessibility of housing for migrant workers remains a question that spatial data alone cannot fully answer.
+
+Future work could incorporate road network distances, population density data, and information on informal settlements to build a more complete picture of service accessibility for agricultural labor migrants in Italy. Integration with health outcome data or migrant population estimates would further strengthen the policy relevance of this analysis.
+
+## References
+
+Armenise, M., Benassi, F., Carella, M., & Misuraca, R. (2024). Accessibility and older and foreign populations: Exploring local spatial heterogeneities across Italy. *Economies*, *12*(9), 248. <https://doi.org/10.3390/economies12090248>
+
+Brovelli, M. A., & Zamboni, G. (2018). A new method for the assessment of spatial accuracy and completeness of OpenStreetMap building footprints. *ISPRS International Journal of Geo-Information*, *7*(8), 289. <https://doi.org/10.3390/ijgi7080289>
+
+Brunsdon, C., & Comber, A. (2021). Opening practice: Supporting reproducibility and critical spatial data science. *Journal of Geographical Systems*, *23*(4), 477–496. <https://doi.org/10.1007/s10109-020-00334-2>
+
+Calovi, M., & Seghieri, C. (2018). Using a GIS to support the spatial reorganization of outpatient care services delivery in Italy. *BMC Health Services Research*, *18*, 883. <https://doi.org/10.1186/s12913-018-3642-4>
+
+Caxaj, C. S., Shkopi, E., Naranjo, C. T., Chew, A., Hao, Y. T., & Nguyen, M. (2023). Health, social and legal supports for migrant agricultural workers in France, Italy, Spain, Germany, Canada, Australia and New Zealand: A scoping review. *Frontiers in Public Health*, *11*, 1182816. <https://doi.org/10.3389/fpubh.2023.1182816>
+
+Corrado, A., & Palumbo, L. (2022). Essential farmworkers and the pandemic crisis: Migrant labour conditions and legal and political responses in Italy and Spain. In A. Triandafyllidou (Ed.), *Migration and pandemics* (pp. 139–163). Springer. <https://doi.org/10.1007/978-3-030-81210-2_8>
+
+De Virgilio Suglia, C., Laforgia, R., Schiavone, M., Belfiore, A., Laforgia, N., Saracino, A., Putoto, G., & Di Gennaro, F. (2025). Bridging gaps in migrant healthcare: CUAMM's experience from 13,103 visits in southern Italy. *Annals of Global Health*, *91*(1), 17. <https://doi.org/10.5334/aogh.4666>
+
+Guidi, C. F., & Berti, F. (2023). Labor exploitation in the Italian agricultural sector: The case of vulnerable migrants in Tuscany. *Frontiers in Sociology*, *8*, 1234873. <https://doi.org/10.3389/fsoc.2023.1234873>
+
+Lamberti-Castronuovo, A., Pine, J. A., Brogiato, G., & Kinkel, H.-F. (2021). Agricultural migrants' health and ability to access care: A case study in southern Italy. *International Journal of Environmental Research and Public Health*, *18*(23), 12615. <https://doi.org/10.3390/ijerph182312615>
+
+Salvucci, G., & Salvati, L. (2022). Official statistics, building censuses, and OpenStreetMap completeness in Italy. *ISPRS International Journal of Geo-Information*, *11*(1), 29. <https://doi.org/10.3390/ijgi11010029>
+
+## A Note on AI Assistance and Academic Integrity
+
+In completing this project, I used AI tools (specifically ChatGPT) in a limited and targeted capacity. For instance, I used ChatGPT to help format the reference list. I acknowledge that this introduced an error in my initial project proposal submission: a DOI link was mismatched between two real and relevant sources. The correct references are Lamberti-Castronuovo et al. (2021), "Agricultural Migrants' Health and Ability to Access Care: A Case Study in Southern Italy" (<https://doi.org/10.3390/ijerph182312615),> and Do Napoli et al. (2022), "Barriers to Accessing Primary Care for Migrants in Italy" (<https://doi.org/10.3389/fpubh.2022.817696).> In my final project submission, I removed the Do Napoli et al. (2022) reference entirely, as it was not ultimately cited in the analysis. The Lamberti-Castronuovo et al. (2021) reference has been corrected and is used throughout this document. I understand that verifying reference accuracy is my responsibility, and I sincerely apologize for the oversight in the earlier submission.
+:::
